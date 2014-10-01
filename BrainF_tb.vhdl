@@ -1,5 +1,5 @@
 -- BrainF* interpreter - testbench
--- Version: 0.0.00
+-- Version: 20141001
 -- Author:  Ronald Landheer-Cieslak
 -- Copyright (c) 2014  Vlinder Software
 -- License: http://opensource.org/licenses/CDDL-1.0
@@ -11,6 +11,7 @@ use work.txt_util.all;
 entity BrainF_tb is
 end entity;
 architecture behavior of BrainF_tb is
+    constant WARMUP_COUNTDOWN : integer := 4;
     constant INITIAL_COUNTDOWN : integer := 10;
     --constant PROGRAM : string := "++++++++";
     --constant PROGRAM : string := "[.]";
@@ -41,7 +42,7 @@ architecture behavior of BrainF_tb is
             ; done : out std_logic
             );
     end component;
-    type State is (initial, start_loading_program, loading_program, running_program, success);
+    type State is (warmup, initial, start_loading_program, loading_program, running_program, success);
     
     function to_std_logic_vector(c : character) return std_logic_vector is
         variable cc : integer;
@@ -62,7 +63,7 @@ architecture behavior of BrainF_tb is
     signal memory_byte_read_ack     : std_logic := '0';
     signal done                     : std_logic := '0';
     
-    signal tb_state                 : State := initial;  
+    signal tb_state                 : State := warmup;  
     
     signal should_be_done           : std_logic := '0';
     
@@ -88,13 +89,24 @@ begin
     should_be_done <= '1' after PROGRAM_TIMEOUT;
     
     p_tb : process(clock)
-        variable countdown : integer := INITIAL_COUNTDOWN;
+        variable countdown : integer := WARMUP_COUNTDOWN;
         variable program_load_counter : integer := 0;
     begin
         if rising_edge(clock) then
             case tb_state is
+            when warmup =>
+                assert done = '0' report "Cannot be done while warming up (pipe filling with halt instructions)" severity failure;
+                assert program_full = '0' report "Program cannot be initially full" severity failure;
+                assert ack_instruction = '0' report "Cannot acknowledge an instruction I haven't given yet" severity failure;
+                assert memory_byte_ready = '0' report "Cannot have memory ready when I haven't asked for anything yet" severity failure;
+                if countdown = 1 then
+                    tb_state <= initial;
+                    countdown := INITIAL_COUNTDOWN;
+                else
+                    countdown := countdown - 1;
+                end if;
             when initial =>
-                assert done = '0' report "Cannot be done in the initial state" severity failure;
+                assert done = '1' report "Once warmed up, it should know it has no program and say it's done" severity failure;
                 assert program_full = '0' report "Program cannot be initially full" severity failure;
                 assert ack_instruction = '0' report "Cannot acknowledge an instruction I haven't given yet" severity failure;
                 assert memory_byte_ready = '0' report "Cannot have memory ready when I haven't asked for anything yet" severity failure;
@@ -104,7 +116,6 @@ begin
                     countdown := countdown - 1;
                 end if;
             when start_loading_program =>
-                assert done = '0' report "Cannot be done while loading the program" severity failure;
                 assert program_full = '0' report "Program cannot be initially full" severity failure;
                 assert ack_instruction = '0' report "Cannot acknowledge an instruction I haven't given yet" severity failure;
                 assert memory_byte_ready = '0' report "Cannot have memory ready when I haven't asked for anything yet" severity failure;

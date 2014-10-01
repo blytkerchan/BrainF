@@ -1,5 +1,5 @@
 -- BrainF* interpreter
--- Version: 0.0.00
+-- Version: 20141001
 -- Author:  Ronald Landheer-Cieslak
 -- Copyright (c) 2014  Vlinder Software
 -- License: http://opensource.org/licenses/CDDL-1.0
@@ -30,7 +30,7 @@ entity BrainF is
         );
 end entity;
 architecture behavior of BrainF is
-    type Instruction is (dot, plus, minus, advance, back_up, begin_loop, end_loop);
+    type Instruction is (nop, halt, dot, plus, minus, advance, back_up, begin_loop, end_loop);
     type Instructions is array(0 to (MAX_INSTRUCTION_COUNT - 1)) of Instruction;
     type Pipeline is array(0 to 1) of Instruction;
     subtype IPointer is integer range 0 to MAX_INSTRUCTION_COUNT;
@@ -43,13 +43,15 @@ architecture behavior of BrainF is
     function toInstruction(i : std_logic_vector(7 downto 0)) return Instruction is
     begin
         case i is
+        when x"23" => return halt;
         when x"2B" => return plus;
         when x"2D" => return minus;
+        when x"2E" => return dot;
         when x"3E" => return advance;
         when x"3C" => return back_up;
         when x"5B" => return begin_loop;
         when x"5D" => return end_loop;
-        when others => return dot;
+        when others => return nop;
         end case;
     end toInstruction;
     function increment(b : std_logic_vector(7 downto 0)) return std_logic_vector is
@@ -75,13 +77,13 @@ architecture behavior of BrainF is
     signal stalled                      : std_logic := '0'; -- signals it's going forward in a loop. The p_fetch process will continue 
                                                             -- fetching until it finds the corresponding end-of-loop and puts that in pipe(0) at that time. 
     -- produced by p_fetch
-    signal pipe                         : Pipeline := (others => dot);
+    signal pipe                         : Pipeline := (others => nop);
     signal iptr                         : IPointer := 0;
     signal nest_count                   : NestCount := 0;
     signal expect_stall                 : std_logic := '0';
     signal should_back_up_on_stall      : std_logic := '0'; -- set if we expect a stall on an end_loop instruction
     -- produced by p_loadInstructions
-    signal program                      : Instructions := (others => dot);
+    signal program                      : Instructions := (others => halt);
     signal prev_load_instructions       : std_logic := '0';
     signal instruction_step             : std_logic := '0';
     signal iwptr                        : IPointer := 0;
@@ -129,6 +131,10 @@ begin
                     else
                         stalled <= '0';
                     end if;
+                when halt => 
+                    stalled <= '1';
+                when nop =>
+                    null;
                 end case;
             end if;
         end if;
@@ -138,7 +144,7 @@ begin
         variable done_skipping : boolean := False;
     begin
         if resetN = '0' or load_instructions = '1' then
-            pipe <= (others => dot);
+            pipe <= (others => nop);
             iptr <= 0;
             nest_count <= 0;
             done <= '0';
@@ -160,7 +166,7 @@ begin
                 -- pipe(1). Hence, while we can anticipate our not stalling (and therefore load the next instruction 
                 -- into pipe(1) regardless) we have to make sure that if we do stall, we start by backing up the 
                 -- instruction pointer twice (or not count the end_loop instruction as nesting).
-                if (pipe(1) = begin_loop or pipe(1) = end_loop) and stalled /= '1' and expect_stall = '0' then
+                if (pipe(1) = begin_loop or pipe(1) = end_loop or pipe(1) = halt) and stalled /= '1' and expect_stall = '0' then
                     expect_stall <= '1';
                     done_skipping := False;
                     if pipe(1) = end_loop then
@@ -182,6 +188,8 @@ begin
                         pipe(0) <= pipe(1);
                         iptr <= iptr + 2;
                         done_skipping := True;
+                    elsif stalled = '1' and pipe(0) = halt then
+                        done <= '1';
                     elsif stalled = '1' and pipe(0) = pipe(1) and not done_skipping then
                         nest_count <= nest_count + 1;
                     elsif stalled = '1' and nest_count /= 0 and ((pipe(0) = begin_loop and pipe(1) = end_loop) or (pipe(0) = end_loop and pipe(1) = begin_loop)) then
@@ -198,6 +206,8 @@ begin
                         if iptr /= MAX_INSTRUCTION_COUNT then
                             iptr <= iptr + 1;
                         end if;
+                    elsif stalled = '1' and pipe(0) = halt then
+                        null;
                     elsif not done_skipping then
                         assert stalled = '1' and pipe(0) = end_loop report "Unexpected stall!" severity failure;
                         if should_back_up_on_stall = '1' then
@@ -222,7 +232,7 @@ begin
     p_loadInstructions : process(clock, resetN)
     begin
         if resetN = '0' then
-            program <= (others => dot);
+            program <= (others => halt);
             prev_load_instructions <= '0';
             instruction_step <= '0';
             iwptr <= 0;
@@ -230,7 +240,7 @@ begin
         else
             if rising_edge(clock) then
                 if prev_load_instructions = '0' and load_instructions ='1' then
-                    program <= (others => dot);
+                    program <= (others => halt);
                     iwptr <= 0;
                     instruction_step <= '0';
                     internal_program_full <= '0';
@@ -280,6 +290,7 @@ begin
                             end if;
                         end if;
                     end if;
+                    
                     prev_memory_byte_read_ack <= memory_byte_read_ack;
                 end if;
                 prev_read_memory <= read_memory;

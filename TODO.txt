@@ -1,5 +1,5 @@
-[ ] add a # instruction for halt - replace default dot with default halt
+[x] add a # instruction for halt - replace default dot with default halt
 [ ] make . write the value of the current memory position to the memory bus
-[ ] add a nop instruction 
+[x] add a nop instruction 
 [ ] add a 0 instruction to nul out the current memory location
 [ ] look ahead to find [-] and replace it with 0
