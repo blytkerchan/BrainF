@@ -205,8 +205,6 @@ begin
                         else
                             pipe(1) <= program(iptr);
                             done <= '0';
-                        end if;
-                        if iptr /= MAX_INSTRUCTION_COUNT then
                             iptr <= iptr + 1;
                         end if;
                     elsif stalled = '1' and pipe(0) = halt then
