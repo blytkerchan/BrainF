@@ -1,5 +1,5 @@
 -- BrainF* interpreter  
--- Version: 20141001
+-- Version: 20141018
 -- Author:  Ronald Landheer-Cieslak
 -- Copyright (c) 2014  Vlinder Software
 -- License: http://opensource.org/licenses/CDDL-1.0
