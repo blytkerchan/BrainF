@@ -1,0 +1,10 @@
+*~
+*.bak
+db
+work/
+transcript
+BrainF_tb.cr.mti
+BrainF_top.ipinfo
+tt
+txt_util.vhd
+vsim.wlf
