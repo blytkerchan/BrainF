@@ -2,7 +2,7 @@
 -- Version: 20141001
 -- Author:  Ronald Landheer-Cieslak
 -- Copyright (c) 2014  Vlinder Software
--- License: http://opensource.org/licenses/CDDL-1.0
+-- License: LGPL-3.0
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
