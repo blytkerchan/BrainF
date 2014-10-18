@@ -1,4 +1,4 @@
--- BrainF* interpreter
+-- BrainF* interpreter  
 -- Version: 20141001
 -- Author:  Ronald Landheer-Cieslak
 -- Copyright (c) 2014  Vlinder Software
@@ -203,9 +203,15 @@ begin
                             pipe(1) <= dot;
                             done <= '1';
                         else
-                            pipe(1) <= program(iptr);
-                            done <= '0';
-                            iptr <= iptr + 1;
+                            if iptr + 2 < MAX_INSTRUCTION_COUNT and program(iptr) = begin_loop and program(iptr + 1) = minus and program(iptr + 2) = end_loop then
+                                pipe(1) <= zero;
+                                done <= '0';
+                                iptr <= iptr + 3;
+                            else
+                                pipe(1) <= program(iptr);
+                                done <= '0';
+                                iptr <= iptr + 1;
+                            end if;
                         end if;
                     elsif stalled = '1' and pipe(0) = halt then
                         null;
