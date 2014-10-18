@@ -30,7 +30,7 @@ entity BrainF is
         );
 end entity;
 architecture behavior of BrainF is
-    type Instruction is (nop, halt, dot, plus, minus, advance, back_up, begin_loop, end_loop);
+    type Instruction is (nop, halt, dot, plus, minus, advance, back_up, begin_loop, end_loop, zero);
     type Instructions is array(0 to (MAX_INSTRUCTION_COUNT - 1)) of Instruction;
     type Pipeline is array(0 to 1) of Instruction;
     subtype IPointer is integer range 0 to MAX_INSTRUCTION_COUNT;
@@ -47,6 +47,7 @@ architecture behavior of BrainF is
         when x"2B" => return plus;
         when x"2D" => return minus;
         when x"2E" => return dot;
+        when x"30" => return zero;
         when x"3E" => return advance;
         when x"3C" => return back_up;
         when x"5B" => return begin_loop;
@@ -107,6 +108,8 @@ begin
                     mem(ptr) <= increment(mem(ptr));
                 when minus =>
                     mem(ptr) <= decrement(mem(ptr));
+                when zero =>
+                    mem(ptr) <= x"00";
                 when advance =>
                     if ptr = MEMORY_SIZE - 1 then
                         ptr <= 0;
