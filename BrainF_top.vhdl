@@ -9,8 +9,13 @@ use ieee.numeric_std.all;
 
 entity BrainF_top is
     port(
-          resetN : in std_logic
-        ; clock : in std_logic
+          resetN            : in std_logic
+        ; clock             : in std_logic
+        
+        ; spi_miso          : out std_logic
+        ; spi_mosi          : in std_logic
+        ; spi_clock         : in std_logic
+        ; spi_slave_selectN : in std_logic
         );
 end entity;
 architecture behavior of BrainF_top is
@@ -36,7 +41,7 @@ architecture behavior of BrainF_top is
             ; done : out std_logic
             );
     end component;
-
+    
     signal load_instructions : std_logic := '0';
     signal instruction_octet : std_logic_vector(7 downto 0) := (others => '0');
 begin

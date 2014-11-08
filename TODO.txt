@@ -7,3 +7,4 @@
 [ ] expose debug registers (ptr, iptr, stalled bits, somesuch)
 [ ] build a Quartus project
 [ ] add a "continue" signal to the interpreter to have it continue after a halt
+[ ] add a debouncer to the SPI bus
